@@ -1,7 +1,7 @@
 import kotlin.Double.Companion.NEGATIVE_INFINITY
 
 class SubgradientSolver(problem: Problem) {
-    val graph: DirectedGraph = problem.graph
+    val graph: Graph = problem.graph
     val source: Int = problem.source
     val goal: Int = problem.goal
     val capacity: Int = problem.capacity
@@ -11,7 +11,7 @@ class SubgradientSolver(problem: Problem) {
     }
 
     fun solve(): SearchNode? {
-        val epsilon = 0.00000001 // Let's define epsilon as this number for now
+        val epsilon = 0.0001 // Let's define epsilon as this number for now
         var LStar = NEGATIVE_INFINITY
         var k = 0
         var mu = 1.0
@@ -22,25 +22,25 @@ class SubgradientSolver(problem: Problem) {
         })
 
         if (PStar == null || PStar.cost > capacity) {
-            // PROBLEM INFEASIBLE
+            return null
         }
 
 
         while (mu > epsilon) {
             val Pk = uniform(graph, source, goal, { cost, edge ->
                 cost + (edge.weight + (lambda * edge.time))
-            })
-            val Lk = Pk!!.weight + (lambda * (Pk.time - capacity))
+            })!!
+            val Lk = Pk.weight + (lambda * (Pk.time - capacity))
             if (Lk > LStar) {
                 LStar = Lk
-                if (Pk.cost <= capacity) {
+                if (Pk.time <= capacity) {
                     PStar = Pk
                 }
             }
 
+            k++
             lambda = maxOf(.0, lambda + (mu * (Pk.time - capacity)))
             mu = muk(k)
-            k++
         }
 
         return PStar

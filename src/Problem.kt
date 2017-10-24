@@ -1,13 +1,31 @@
 import java.io.File
 import java.util.*
 
-data class DirectedEdge(val source: Int, val goal: Int, val weight: Int, val time: Int)
+data class Edge(val source: Int, val goal: Int, val weight: Int, val time: Int) {
+
+    fun other(s: Int): Int {
+        return if (s == source) {
+            goal
+        }
+        else {
+            source
+        }
+    }
+}
 data class GraphNode(val x: Double, val y: Double)
 
-class DirectedGraph(private val nodes: List<GraphNode>, private val edges: List<DirectedEdge>) {
-    private val neighbors = mutableMapOf<Int, MutableList<DirectedEdge>>()
+class Graph(private val nodes: List<GraphNode>, private val edges: List<Edge>) {
+    private val neighbors = mutableMapOf<Int, MutableList<Edge>>()
     init {
         edges.forEach { edge ->
+
+            if (edge.goal in neighbors) {
+                neighbors[edge.goal]!!.add(edge)
+            }
+            else {
+                neighbors[edge.goal] = mutableListOf(edge)
+            }
+
             if (edge.source in neighbors) {
                 neighbors[edge.source]!!.add(edge)
             }
@@ -21,7 +39,7 @@ class DirectedGraph(private val nodes: List<GraphNode>, private val edges: List<
     fun edges (u: Int) = neighbors[u]
 }
 
-data class SearchNode(val u: Int, val cost: Double, val weight: Int = 0, val time: Int = 0, val parent: SearchNode? = null): Comparable<SearchNode> {
+data class SearchNode(val v: Int, val cost: Double, val weight: Int = 0, val time: Int = 0, val parent: SearchNode? = null): Comparable<SearchNode> {
 
     override fun compareTo(other: SearchNode): Int {
         return when {
@@ -36,19 +54,19 @@ data class SearchNode(val u: Int, val cost: Double, val weight: Int = 0, val tim
         val path = mutableListOf(this)
 
         while (node.parent != null) {
-            path.add(node)
             node = node.parent!!
+            path.add(node)
         }
 
         return path.reversed()
     }
 
-    fun neighbors(graph: DirectedGraph, cost: (Double, DirectedEdge) -> Double): MutableList<SearchNode> {
+    fun neighbors(graph: Graph, cost: (Double, Edge) -> Double): MutableList<SearchNode> {
         val nodes = mutableListOf<SearchNode>()
 
-        val edges = graph.edges(u)
+        val edges = graph.edges(v)
         if (edges != null) {
-            nodes.addAll(edges.map { edge -> SearchNode(edge.goal, cost(this.cost, edge), weight + edge.weight, time + edge.time, this) })
+            nodes.addAll(edges.map { edge -> SearchNode(edge.other(v), cost(this.cost, edge), weight + edge.weight, time + edge.time, this) })
         }
 
         return nodes
@@ -56,9 +74,8 @@ data class SearchNode(val u: Int, val cost: Double, val weight: Int = 0, val tim
 }
 
 
-fun uniform (graph: DirectedGraph, source: Int, goal: Int, cost: (Double, DirectedEdge) -> Double): SearchNode? {
+fun uniform (graph: Graph, source: Int, goal: Int, cost: (Double, Edge) -> Double): SearchNode? {
 
-    val goal = graph.node(goal)
     val frontier = PriorityQueue<SearchNode>()
     val explored = mutableSetOf<Int>()
 
@@ -66,12 +83,14 @@ fun uniform (graph: DirectedGraph, source: Int, goal: Int, cost: (Double, Direct
 
     while (frontier.isNotEmpty()) {
         val node = frontier.poll()
-        if (graph.node(node.u) == goal) {
-            return node
-        }
 
-        if (node.u !in explored) {
-            explored.add(node.u)
+        if (node.v !in explored) {
+
+            if (node.v == goal) {
+                return node
+            }
+
+            explored.add(node.v)
             node.neighbors(graph, cost).forEach { n -> frontier.add(n) }
         }
     }
@@ -81,7 +100,7 @@ fun uniform (graph: DirectedGraph, source: Int, goal: Int, cost: (Double, Direct
 
 
 
-data class Problem(val graph: DirectedGraph, val source: Int, val goal: Int, val capacity: Int) {
+data class Problem(val graph: Graph, val source: Int, val goal: Int, val capacity: Int) {
 
     companion object {
         fun fromFile (path: String): Problem {
@@ -93,21 +112,21 @@ data class Problem(val graph: DirectedGraph, val source: Int, val goal: Int, val
             val t = scanner.nextInt()
             val capacity = scanner.nextInt()
 
-            val nodes = 0.rangeTo(n).map { i ->
-                val x = scanner.nextDouble()
-                val y = scanner.nextDouble()
+            val nodes = (0 until n).map { i ->
+                val x = scanner.next().toDouble()
+                val y = scanner.next().toDouble()
                 GraphNode(x, y)
             }
 
-            val edges = 0.rangeTo(m).map { i ->
+            val edges = (0 until m).map { i ->
                 val u = scanner.nextInt()
                 val v = scanner.nextInt()
                 val w = scanner.nextInt()
                 val r = scanner.nextInt()
-                DirectedEdge(u, v, w, r)
+                Edge(u, v, w, r)
             }
 
-            val graph = DirectedGraph(nodes, edges)
+            val graph = Graph(nodes, edges)
 
             return Problem(graph, s, t, capacity)
         }

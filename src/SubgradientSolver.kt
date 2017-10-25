@@ -6,43 +6,60 @@ class SubgradientSolver(problem: Problem) {
     val goal: Int = problem.goal
     val capacity: Int = problem.capacity
 
+    /**
+     * Returns the value of mu at iteration k
+     * Simple function that tends to 0
+     */
     private fun muk (k : Int): Double {
         return 1.0 / k.toDouble()
     }
 
     fun solve(): SearchNode? {
         val epsilon = 0.0001 // Let's define epsilon as this number for now
-        var LStar = NEGATIVE_INFINITY
+        var lStar = NEGATIVE_INFINITY
         var k = 0
         var mu = 1.0
         var lambda = .0
 
-        var PStar: SearchNode? = uniform(graph, source, goal, { cost, edge ->
-            cost + edge.time
+        // Shortest path with time as weights
+        // It is the first lowerbound to the constrained shortest path problem
+        var pStar: SearchNode? = uniform(graph, source, goal, { node, edge ->
+            node.cost + edge.time
         })
 
-        if (PStar == null || PStar.cost > capacity) {
+        // No path found or the cost is greater than the capacity: the problem is infeasible
+        if (pStar == null || pStar.cost > capacity) {
             return null
         }
 
 
         while (mu > epsilon) {
-            val Pk = uniform(graph, source, goal, { cost, edge ->
-                cost + (edge.weight + (lambda * edge.time))
+            val pK = uniform(graph, source, goal, { node, edge ->
+                node.cost + (edge.weight + (lambda * edge.time))
             })!!
-            val Lk = Pk.weight + (lambda * (Pk.time - capacity))
-            if (Lk > LStar) {
-                LStar = Lk
-                if (Pk.time <= capacity) {
-                    PStar = Pk
+
+            // L_k = C_P_k + (lambda * (P_t_k - T))
+            val lK = pK.weight + (lambda * (pK.time - capacity))
+            if (lK >= lStar) {
+                lStar = lK
+                if (pK.time <= capacity) {
+                    pStar = pK
                 }
             }
 
+            lambda = maxOf(.0, lambda + (mu * (pK.time - capacity)))
             k++
-            lambda = maxOf(.0, lambda + (mu * (Pk.time - capacity)))
             mu = muk(k)
         }
 
-        return PStar
+
+        val b = BranchAndBoundSolver(graph, source, goal, capacity, pStar!!.weight)
+        val solution = b.solve()
+
+        if (solution != null) {
+            pStar = solution
+        }
+
+        return pStar
     }
 }

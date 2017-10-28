@@ -1,6 +1,9 @@
 import kotlin.Double.Companion.NEGATIVE_INFINITY
 
+const val EPSILON = 0.0001 // Let's define epsilon as this number for now
+
 class SubgradientSolver(problem: Problem) {
+
     val graph: Graph = problem.graph
     val source: Int = problem.source
     val goal: Int = problem.goal
@@ -15,7 +18,6 @@ class SubgradientSolver(problem: Problem) {
     }
 
     fun solve(): SearchNode? {
-        val EPSILON = 0.0001 // Let's define epsilon as this number for now
         var lStar = NEGATIVE_INFINITY
         var k = 0
         var mu = 1.0
@@ -23,9 +25,7 @@ class SubgradientSolver(problem: Problem) {
 
         // Shortest path with time as weights
         // It is the first bound to the constrained shortest path problem
-        var pStar: SearchNode? = uniform(graph, source, goal, { node, edge ->
-            node.cost + edge.time
-        })
+        var pStar: SearchNode? = uniform(graph, source, goal, { node, edge -> node.cost + edge.time })
 
         // No path found or the cost is greater than the capacity: the problem is infeasible
         if (pStar == null || pStar.cost > capacity) {
@@ -37,7 +37,6 @@ class SubgradientSolver(problem: Problem) {
         while (mu > EPSILON) {
             val pK = uniform(graph, source, goal, ::cost) ?: return null
 
-            // L_k = C_P_k + (lambda * (P_t_k - T))
             val lK = pK.weight + (lambda * (pK.time - capacity))
             if (lK >= lStar) {
                 lStar = lK

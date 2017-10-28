@@ -1,5 +1,5 @@
 
-class BranchAndBoundSolver(val graph: Graph, val source: Int, val goal: Int, val capacity: Int, var lowerbound: Int) {
+class BranchAndBoundSolver(val graph: Graph, val source: Int, val goal: Int, val capacity: Int, var bound: Int) {
 
     // The solution
     var solution: SearchNode? = null
@@ -22,18 +22,17 @@ class BranchAndBoundSolver(val graph: Graph, val source: Int, val goal: Int, val
         // Add current node to explored set
         explored.add(node.v)
 
+        // Filter nodes that have been explored and those that are worse than the current solution
         node.neighbors(graph)
-            // Filter nodes that have been explored
             .filter { it.v !in explored }
+            .filter { isBetter(it) }
             .forEach {
-                if (isBetter(it)) {
-                    if (it.v == goal) {
-                        solution = node
-                        this.lowerbound = node.weight
-                    }
-                    else {
-                        dfs(it, explored)
-                    }
+                if (it.v == goal) {
+                    solution = it
+                    this.bound = it.weight
+                }
+                else {
+                    dfs(it, explored)
                 }
             }
     }
@@ -41,7 +40,7 @@ class BranchAndBoundSolver(val graph: Graph, val source: Int, val goal: Int, val
     fun isBetter(node: SearchNode): Boolean {
 
         // Lowerbound violated
-        if (node.weight >= this.lowerbound) {
+        if (node.weight >= this.bound) {
             return false
         }
 

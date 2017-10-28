@@ -15,14 +15,14 @@ class SubgradientSolver(problem: Problem) {
     }
 
     fun solve(): SearchNode? {
-        val epsilon = 0.0001 // Let's define epsilon as this number for now
+        val EPSILON = 0.0001 // Let's define epsilon as this number for now
         var lStar = NEGATIVE_INFINITY
         var k = 0
         var mu = 1.0
         var lambda = .0
 
         // Shortest path with time as weights
-        // It is the first lowerbound to the constrained shortest path problem
+        // It is the first bound to the constrained shortest path problem
         var pStar: SearchNode? = uniform(graph, source, goal, { node, edge ->
             node.cost + edge.time
         })
@@ -32,11 +32,10 @@ class SubgradientSolver(problem: Problem) {
             return null
         }
 
+        fun cost (node: SearchNode, edge: Edge) = node.cost + (edge.weight + (lambda * edge.time))
 
-        while (mu > epsilon) {
-            val pK = uniform(graph, source, goal, { node, edge ->
-                node.cost + (edge.weight + (lambda * edge.time))
-            })!!
+        while (mu > EPSILON) {
+            val pK = uniform(graph, source, goal, ::cost) ?: return null
 
             // L_k = C_P_k + (lambda * (P_t_k - T))
             val lK = pK.weight + (lambda * (pK.time - capacity))
@@ -50,14 +49,6 @@ class SubgradientSolver(problem: Problem) {
             lambda = maxOf(.0, lambda + (mu * (pK.time - capacity)))
             k++
             mu = muk(k)
-        }
-
-
-        val b = BranchAndBoundSolver(graph, source, goal, capacity, pStar!!.weight)
-        val solution = b.solve()
-
-        if (solution != null) {
-            pStar = solution
         }
 
         return pStar

@@ -5,7 +5,21 @@ fun main(args: Array<String>) {
 
     val node = solver.solve()
 
-    printForInginious(node!!)
+    if (node != null) {
+        val (graph, source, goal, capacity) = problem
+        val bab = BranchAndBoundSolver(graph, source, goal, capacity, node.weight)
+        val solution = bab.solve()
+
+        if (solution != null) {
+            printForInginious(solution)
+        }
+        else {
+            printForInginious(node)
+        }
+    }
+    else {
+        println("Problem infeasible")
+    }
 }
 
 fun printForInginious (node: SearchNode) {

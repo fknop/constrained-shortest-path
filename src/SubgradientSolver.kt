@@ -1,6 +1,6 @@
 import kotlin.Double.Companion.NEGATIVE_INFINITY
 
-const val EPSILON = 0.0001 // Let's define epsilon as this number for now
+const val EPSILON = 0.1 // Let's define epsilon as this number for now
 
 class SubgradientSolver(problem: Problem) {
 
